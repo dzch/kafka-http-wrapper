@@ -1,18 +1,18 @@
 /*
     The MIT License (MIT)
-    
+
 	Copyright (c) 2015 myhug.cn and zhouwench (zhouwench@gmail.com)
-    
+
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
     in the Software without restriction, including without limitation the rights
     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in all
     copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,35 +24,35 @@
 package ktransfer
 
 import (
-		"github.com/dzch/go-utils/logger"
-		"github.com/go-yaml/yaml"
-		"gopkg.in/Shopify/sarama.v1"
-		"io/ioutil"
-		"errors"
-		"time"
-	   )
+	"errors"
+	"github.com/dzch/go-utils/logger"
+	"gopkg.in/Shopify/sarama.v1"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"time"
+)
 
 type KTransfer struct {
-	confFile string
-	logDir string
-	logLevel int
-	zkHosts []string
-	zkChroot string
-	zkTimeout time.Duration
-	moduleEnabled []string
-	moduleConfDir string
-	modules map[string]*Module
+	confFile       string
+	logDir         string
+	logLevel       int
+	zkHosts        []string
+	zkChroot       string
+	zkTimeout      time.Duration
+	moduleEnabled  []string
+	moduleConfDir  string
+	modules        map[string]*Module
 	fatalErrorChan chan error
 }
 
 func NewKTransfer(confFile string) (*KTransfer, error) {
-    transfer := &KTransfer {
-        confFile: confFile,
+	transfer := &KTransfer{
+		confFile: confFile,
 	}
 	return transfer, transfer.init()
 }
 
-func (transfer *KTransfer) init () (err error) {
+func (transfer *KTransfer) init() (err error) {
 	err = transfer.initConfig()
 	if err != nil {
 		return
@@ -73,21 +73,21 @@ func (transfer *KTransfer) init () (err error) {
 }
 
 func (transfer *KTransfer) initConfig() (err error) {
-    content, err := ioutil.ReadFile(transfer.confFile)
+	content, err := ioutil.ReadFile(transfer.confFile)
 	if err != nil {
 		return
 	}
-    m := make(map[interface{}]interface{})
+	m := make(map[interface{}]interface{})
 	err = yaml.Unmarshal(content, &m)
 	if err != nil {
 		return
 	}
 
 	/* log conf */
-    logDir, ok := m["log_dir"]
+	logDir, ok := m["log_dir"]
 	if !ok {
 		return errors.New("log_dir not found in conf file")
-    }
+	}
 	transfer.logDir = logDir.(string)
 	logLevel, ok := m["log_level"]
 	if !ok {
@@ -100,7 +100,7 @@ func (transfer *KTransfer) initConfig() (err error) {
 	if !ok {
 		return errors.New("zk_hosts not found in conf file")
 	}
-    zkHosts := zkhosts.([]interface{})
+	zkHosts := zkhosts.([]interface{})
 	if len(zkHosts) <= 0 {
 		return errors.New("num of zkHosts is zero")
 	}
@@ -115,9 +115,9 @@ func (transfer *KTransfer) initConfig() (err error) {
 	}
 	zkTimeout, ok := m["zk_timeout_ms"]
 	if !ok {
-		transfer.zkTimeout = 1*time.Second
+		transfer.zkTimeout = 1 * time.Second
 	} else {
-		transfer.zkTimeout = time.Duration(zkTimeout.(int))*time.Millisecond
+		transfer.zkTimeout = time.Duration(zkTimeout.(int)) * time.Millisecond
 	}
 
 	/* module conf */
@@ -130,7 +130,7 @@ func (transfer *KTransfer) initConfig() (err error) {
 	if !ok {
 		return errors.New("module_enabled not found in conf file")
 	}
-    moduleConfs := modules.([]interface{})
+	moduleConfs := modules.([]interface{})
 	if len(moduleConfs) <= 0 {
 		return errors.New("num of module_enabled is zero")
 	}
@@ -142,7 +142,7 @@ func (transfer *KTransfer) initConfig() (err error) {
 }
 
 func (transfer *KTransfer) initLog() (err error) {
-    err = logger.Init(transfer.logDir, "ktransfer", logger.LogLevel(transfer.logLevel))
+	err = logger.Init(transfer.logDir, "ktransfer", logger.LogLevel(transfer.logLevel))
 	if err != nil {
 		return
 	}
@@ -153,12 +153,12 @@ func (transfer *KTransfer) initLog() (err error) {
 func (transfer *KTransfer) initModules() (err error) {
 	transfer.modules = make(map[string]*Module)
 	for _, moduleName := range transfer.moduleEnabled {
-        module := &Module{
-            name: moduleName,
-			zkHosts: transfer.zkHosts,
-			zkChroot: transfer.zkChroot,
-			zkTimeout: transfer.zkTimeout,
-			moduleConfDir: transfer.moduleConfDir,
+		module := &Module{
+			name:           moduleName,
+			zkHosts:        transfer.zkHosts,
+			zkChroot:       transfer.zkChroot,
+			zkTimeout:      transfer.zkTimeout,
+			moduleConfDir:  transfer.moduleConfDir,
 			fatalErrorChan: transfer.fatalErrorChan,
 		}
 		err = module.init()
@@ -180,15 +180,14 @@ func (transfer *KTransfer) initChans() (err error) {
 func (transfer *KTransfer) Run() {
 	logger.Notice("ktransfer start")
 	for _, module := range transfer.modules {
-	    go module.run()
+		go module.run()
 	}
 	for {
 		select {
-			case err := <-transfer.fatalErrorChan:
-			    logger.Fatal("%s", err.Error())
-			    return
+		case err := <-transfer.fatalErrorChan:
+			logger.Fatal("%s", err.Error())
+			return
 		}
 	}
 	return
 }
-
