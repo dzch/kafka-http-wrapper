@@ -154,7 +154,6 @@ func (td *TransDi) initConsumer() (err error) {
 	config := consumergroup.NewConfig()
 	config.Zookeeper.Chroot = td.zkChroot
 	config.Zookeeper.Timeout = td.zkTimeout
-	config.Offsets.Initial = sarama.OffsetNewest // 如果没有记录，则从最新位置开始消费
 	td.cg, err = consumergroup.JoinConsumerGroup(
 		td.moduleName,
 		[]string{td.topic},
