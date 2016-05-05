@@ -67,6 +67,7 @@ type TransDi struct {
 	zkHosts                []string
 	zkChroot               string
 	zkTimeout              time.Duration
+	zkFailRetryInterval    time.Duration
 	ackedMinTransid        int64
 	curReadTransid         int64 // 已经读取的最大transid
 	curDiTransid           int64
@@ -155,10 +156,12 @@ func (td *TransDi) initTransWindow() (err error) {
 
 func (td *TransDi) initConsumer() (err error) {
 	config := consumergroup.NewConfig()
+	config.Metadata.RefreshFrequency = 60 * time.Second
 	config.Consumer.MaxProcessingTime = td.expectedProcessingTime
 	config.ChannelBufferSize = td.waitingQueueSize
 	config.Zookeeper.Chroot = td.zkChroot
 	config.Zookeeper.Timeout = td.zkTimeout
+	config.Zookeeper.FailRetryInterval = td.zkFailRetryInterval
 	config.Offsets.CommitInterval = td.zkOffsetUpdateInterval
 	td.cg, err = consumergroup.JoinConsumerGroup(
 		td.moduleName,

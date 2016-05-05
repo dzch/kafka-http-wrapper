@@ -37,6 +37,7 @@ type Module struct {
 	zkHosts                []string
 	zkChroot               string
 	zkTimeout              time.Duration
+	zkFailRetryInterval    time.Duration
 	moduleConfDir          string
 	moduleConfig           map[interface{}]interface{}
 	topic                  string
@@ -179,6 +180,7 @@ func (m *Module) initTransDi() (err error) {
 		zkHosts:                m.zkHosts,
 		zkChroot:               m.zkChroot,
 		zkTimeout:              m.zkTimeout,
+		zkFailRetryInterval:    m.zkFailRetryInterval,
 		backendServers:         m.backendServers,
 		protocolConfig:         m.protocolConfig,
 		windowSize:             m.windowSize,

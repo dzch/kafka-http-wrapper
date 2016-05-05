@@ -33,16 +33,17 @@ import (
 )
 
 type KTransfer struct {
-	confFile       string
-	logDir         string
-	logLevel       int
-	zkHosts        []string
-	zkChroot       string
-	zkTimeout      time.Duration
-	moduleEnabled  []string
-	moduleConfDir  string
-	modules        map[string]*Module
-	fatalErrorChan chan error
+	confFile            string
+	logDir              string
+	logLevel            int
+	zkHosts             []string
+	zkChroot            string
+	zkTimeout           time.Duration
+	zkFailRetryInterval time.Duration
+	moduleEnabled       []string
+	moduleConfDir       string
+	modules             map[string]*Module
+	fatalErrorChan      chan error
 }
 
 func NewKTransfer(confFile string) (*KTransfer, error) {
@@ -115,9 +116,15 @@ func (transfer *KTransfer) initConfig() (err error) {
 	}
 	zkTimeout, ok := m["zk_timeout_ms"]
 	if !ok {
-		transfer.zkTimeout = 1 * time.Second
+		transfer.zkTimeout = 30 * time.Second
 	} else {
 		transfer.zkTimeout = time.Duration(zkTimeout.(int)) * time.Millisecond
+	}
+	zkTi, ok := m["zk_fail_retry_interval_ms"]
+	if !ok {
+		transfer.zkFailRetryInterval = 30 * time.Second
+	} else {
+		transfer.zkFailRetryInterval = time.Duration(zkTi.(int)) * time.Millisecond
 	}
 
 	/* module conf */
@@ -158,6 +165,7 @@ func (transfer *KTransfer) initModules() (err error) {
 			zkHosts:                transfer.zkHosts,
 			zkChroot:               transfer.zkChroot,
 			zkTimeout:              transfer.zkTimeout,
+			zkFailRetryInterval:    transfer.zkFailRetryInterval,
 			moduleConfDir:          transfer.moduleConfDir,
 			fatalErrorChan:         transfer.fatalErrorChan,
 			expectedProcessingTime: 100 * time.Millisecond,
