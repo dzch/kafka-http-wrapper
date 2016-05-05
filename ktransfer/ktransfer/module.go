@@ -33,22 +33,25 @@ import (
 )
 
 type Module struct {
-	name              string
-	zkHosts           []string
-	zkChroot          string
-	zkTimeout         time.Duration
-	moduleConfDir     string
-	moduleConfig      map[interface{}]interface{}
-	topic             string
-	methodEnabled     map[string]bool
-	protocolConfig    map[interface{}]interface{}
-	workerNum         uint32
-	maxRetryTimes     int // -1, 无限重试
-	failRetryInterval time.Duration
-	windowSize        int
-	backendServers    []string
-	transDi           *TransDi
-	fatalErrorChan    chan error
+	name                   string
+	zkHosts                []string
+	zkChroot               string
+	zkTimeout              time.Duration
+	moduleConfDir          string
+	moduleConfig           map[interface{}]interface{}
+	topic                  string
+	methodEnabled          map[string]bool
+	protocolConfig         map[interface{}]interface{}
+	workerNum              uint32
+	maxRetryTimes          int // -1, 无限重试
+	failRetryInterval      time.Duration
+	windowSize             int
+	backendServers         []string
+	transDi                *TransDi
+	fatalErrorChan         chan error
+	expectedProcessingTime time.Duration
+	waitingQueueSize       int
+	zkOffsetUpdateInterval time.Duration
 }
 
 func (m *Module) init() (err error) {
@@ -153,24 +156,41 @@ func (m *Module) initConfig() (err error) {
 		m.backendServers = append(m.backendServers, server.(string))
 	}
 
+	/* consumer config */
+	ti, ok := mc["expected_processing_time_ms"]
+	if ok {
+		m.expectedProcessingTime = time.Duration(ti.(int)) * time.Millisecond
+	}
+	ti, ok = mc["zk_offset_update_interval_sec"]
+	if ok {
+		m.zkOffsetUpdateInterval = time.Duration(ti.(int)) * time.Second
+	}
+	qs, ok := mc["waiting_queue_size"]
+	if ok {
+		m.waitingQueueSize = qs.(int)
+	}
+
 	return nil
 }
 
 func (m *Module) initTransDi() (err error) {
 	m.transDi = &TransDi{
-		moduleName:        m.name,
-		zkHosts:           m.zkHosts,
-		zkChroot:          m.zkChroot,
-		zkTimeout:         m.zkTimeout,
-		backendServers:    m.backendServers,
-		protocolConfig:    m.protocolConfig,
-		windowSize:        m.windowSize,
-		workerNum:         m.workerNum,
-		fatalErrorChan:    m.fatalErrorChan,
-		topic:             m.topic,
-		methodEnabled:     m.methodEnabled,
-		maxRetryTimes:     m.maxRetryTimes,
-		failRetryInterval: m.failRetryInterval,
+		moduleName:             m.name,
+		zkHosts:                m.zkHosts,
+		zkChroot:               m.zkChroot,
+		zkTimeout:              m.zkTimeout,
+		backendServers:         m.backendServers,
+		protocolConfig:         m.protocolConfig,
+		windowSize:             m.windowSize,
+		workerNum:              m.workerNum,
+		fatalErrorChan:         m.fatalErrorChan,
+		topic:                  m.topic,
+		methodEnabled:          m.methodEnabled,
+		maxRetryTimes:          m.maxRetryTimes,
+		failRetryInterval:      m.failRetryInterval,
+		expectedProcessingTime: m.expectedProcessingTime,
+		waitingQueueSize:       m.waitingQueueSize,
+		zkOffsetUpdateInterval: m.zkOffsetUpdateInterval,
 	}
 	return m.transDi.init()
 }

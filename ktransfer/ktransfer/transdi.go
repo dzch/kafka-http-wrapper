@@ -63,28 +63,31 @@ type AckData struct {
 }
 
 type TransDi struct {
-	moduleName        string
-	zkHosts           []string
-	zkChroot          string
-	zkTimeout         time.Duration
-	ackedMinTransid   int64
-	curReadTransid    int64 // 已经读取的最大transid
-	curDiTransid      int64
-	protocolConfig    map[interface{}]interface{}
-	backendServers    []string
-	windowSize        int
-	workerNum         uint32
-	transWorkers      []*TransWorker
-	fatalErrorChan    chan error
-	state             int
-	ackDataChan       chan *AckData
-	transWindow       *TransWindow
-	topic             string
-	methodEnabled     map[string]bool
-	maxRetryTimes     int // -1, 无限重试
-	failRetryInterval time.Duration
-	cg                *consumergroup.ConsumerGroup
-	dispatchHasher    hash.Hash32
+	moduleName             string
+	zkHosts                []string
+	zkChroot               string
+	zkTimeout              time.Duration
+	ackedMinTransid        int64
+	curReadTransid         int64 // 已经读取的最大transid
+	curDiTransid           int64
+	protocolConfig         map[interface{}]interface{}
+	backendServers         []string
+	windowSize             int
+	workerNum              uint32
+	transWorkers           []*TransWorker
+	fatalErrorChan         chan error
+	state                  int
+	ackDataChan            chan *AckData
+	transWindow            *TransWindow
+	topic                  string
+	methodEnabled          map[string]bool
+	maxRetryTimes          int // -1, 无限重试
+	failRetryInterval      time.Duration
+	cg                     *consumergroup.ConsumerGroup
+	dispatchHasher         hash.Hash32
+	expectedProcessingTime time.Duration
+	waitingQueueSize       int
+	zkOffsetUpdateInterval time.Duration
 }
 
 func (td *TransDi) init() (err error) {
@@ -152,8 +155,11 @@ func (td *TransDi) initTransWindow() (err error) {
 
 func (td *TransDi) initConsumer() (err error) {
 	config := consumergroup.NewConfig()
+	config.Consumer.MaxProcessingTime = td.expectedProcessingTime
+	config.ChannelBufferSize = td.waitingQueueSize
 	config.Zookeeper.Chroot = td.zkChroot
 	config.Zookeeper.Timeout = td.zkTimeout
+	config.Offsets.CommitInterval = td.zkOffsetUpdateInterval
 	td.cg, err = consumergroup.JoinConsumerGroup(
 		td.moduleName,
 		[]string{td.topic},

@@ -154,12 +154,15 @@ func (transfer *KTransfer) initModules() (err error) {
 	transfer.modules = make(map[string]*Module)
 	for _, moduleName := range transfer.moduleEnabled {
 		module := &Module{
-			name:           moduleName,
-			zkHosts:        transfer.zkHosts,
-			zkChroot:       transfer.zkChroot,
-			zkTimeout:      transfer.zkTimeout,
-			moduleConfDir:  transfer.moduleConfDir,
-			fatalErrorChan: transfer.fatalErrorChan,
+			name:                   moduleName,
+			zkHosts:                transfer.zkHosts,
+			zkChroot:               transfer.zkChroot,
+			zkTimeout:              transfer.zkTimeout,
+			moduleConfDir:          transfer.moduleConfDir,
+			fatalErrorChan:         transfer.fatalErrorChan,
+			expectedProcessingTime: 100 * time.Millisecond,
+			waitingQueueSize:       256,
+			zkOffsetUpdateInterval: 10 * time.Second,
 		}
 		err = module.init()
 		if err != nil {
