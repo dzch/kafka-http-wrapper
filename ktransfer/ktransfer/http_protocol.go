@@ -76,7 +76,7 @@ func (hp *HttpProtocol) transData(server string, transData *TransData) (err erro
 	}
 	/* add header */
 	req.Header = hp.header
-	logger.Notice("header: %s", req.Header.Get("Host"))
+	req.Host = hp.header.Get("Host")
 	/* Post */
 	res, err := hp.client.Do(req)
 	if err != nil {
