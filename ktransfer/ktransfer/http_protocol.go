@@ -40,6 +40,7 @@ type HttpProtocol struct {
 	config                                        map[interface{}]interface{}
 	uri                                           string
 	header                                        http.Header
+	reqHeaderHost                                 string
 	processTimeout                                time.Duration
 	client                                        *http.Client
 	regTopic, regMethod, regPartition, regTransid *regexp.Regexp
@@ -76,7 +77,7 @@ func (hp *HttpProtocol) transData(server string, transData *TransData) (err erro
 	}
 	/* add header */
 	req.Header = hp.header
-	req.Host = hp.header.Get("Host")
+	req.Host = hp.reqHeaderHost
 	/* Post */
 	res, err := hp.client.Do(req)
 	if err != nil {
@@ -114,6 +115,10 @@ func (hp *HttpProtocol) initConfig() (err error) {
 				hp.header.Add(key.(string), val.(string))
 			}
 		}
+	}
+	hh := hp.header.Get("Host")
+	if len(hh) > 0 {
+		hp.reqHeaderHost = hh
 	}
 
 	/* get timeout, 0 means no timeout */
