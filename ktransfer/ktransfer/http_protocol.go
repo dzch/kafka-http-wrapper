@@ -1,18 +1,18 @@
 /*
     The MIT License (MIT)
-    
+
 	Copyright (c) 2015 myhug.cn and zhouwench (zhouwench@gmail.com)
-    
+
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
     in the Software without restriction, including without limitation the rights
     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be included in all
     copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,24 +24,24 @@
 package ktransfer
 
 import (
-		"github.com/dzch/go-utils/logger"
-		"net/http"
-		"time"
-		"errors"
-		"fmt"
-		"regexp"
-		"strconv"
-		"bytes"
-	   )
+	"bytes"
+	"errors"
+	"fmt"
+	"github.com/dzch/go-utils/logger"
+	"net/http"
+	"regexp"
+	"strconv"
+	"time"
+)
 
 type HttpProtocol struct {
-	protocolName string
-	moduleName string
-	config map[interface{}]interface{}
-	uri string
-	header http.Header
-	processTimeout time.Duration
-	client *http.Client
+	protocolName                                  string
+	moduleName                                    string
+	config                                        map[interface{}]interface{}
+	uri                                           string
+	header                                        http.Header
+	processTimeout                                time.Duration
+	client                                        *http.Client
 	regTopic, regMethod, regPartition, regTransid *regexp.Regexp
 }
 
@@ -64,16 +64,18 @@ func (hp *HttpProtocol) name() string {
 
 func (hp *HttpProtocol) transData(server string, transData *TransData) (err error) {
 	/* compose req */
-    uri := hp.regTopic.ReplaceAllString(hp.uri, transData.topic)
+	uri := hp.regTopic.ReplaceAllString(hp.uri, transData.topic)
 	uri = hp.regMethod.ReplaceAllString(uri, transData.method)
 	uri = hp.regPartition.ReplaceAllString(uri, strconv.FormatInt(int64(transData.partition), 10))
 	uri = hp.regTransid.ReplaceAllString(uri, strconv.FormatInt(transData.transid, 10))
-    url := fmt.Sprintf("http://%s%s", server, uri)
+	url := fmt.Sprintf("http://%s%s", server, uri)
 	req, err := http.NewRequest("POST", url, bytes.NewReader(transData.data))
 	if err != nil {
 		logger.Warning("module [%s]: fail to transData: url=%s, topic=%s, partition=%d, transid=%d, method=%s, err=%s", hp.moduleName, url, transData.topic, transData.partition, transData.transid, transData.method, err.Error())
 		return err
 	}
+	/* add header */
+	req.Header = hp.header
 	/* Post */
 	res, err := hp.client.Do(req)
 	if err != nil {
@@ -113,7 +115,7 @@ func (hp *HttpProtocol) initConfig() (err error) {
 		}
 	}
 
-    /* get timeout, 0 means no timeout */
+	/* get timeout, 0 means no timeout */
 	readTimeO, ok := hp.config["read_timeout_ms"]
 	if !ok {
 		err = errors.New(fmt.Sprintf("fail to init HttpProtocol for module [%s]: read_timeout_ms not found", hp.moduleName))
@@ -135,11 +137,11 @@ func (hp *HttpProtocol) initConfig() (err error) {
 	if readTimeO == 0 || writeTimeO == 0 || connTimeO == 0 {
 		hp.processTimeout = 0
 	} else {
-	    hp.processTimeout = time.Duration(readTimeO.(int) + writeTimeO.(int) + connTimeO.(int))*time.Millisecond
+		hp.processTimeout = time.Duration(readTimeO.(int)+writeTimeO.(int)+connTimeO.(int)) * time.Millisecond
 	}
 	/* http client */
-	hp.client = &http.Client {
-        Timeout: hp.processTimeout,
+	hp.client = &http.Client{
+		Timeout: hp.processTimeout,
 	}
 	return nil
 }
