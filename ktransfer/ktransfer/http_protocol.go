@@ -28,6 +28,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dzch/go-utils/logger"
+	"net"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -153,8 +154,8 @@ func (hp *HttpProtocol) initConfig() (err error) {
 				Timeout:   time.Duration(connTimeO.(int)) * time.Millisecond,
 				KeepAlive: 30 * time.Second,
 			}).Dial,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
+			TLSHandshakeTimeout: 10 * time.Second,
+			//ExpectContinueTimeout: 1 * time.Second,
 		},
 		Timeout: hp.processTimeout,
 	}
