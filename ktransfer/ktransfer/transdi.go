@@ -89,6 +89,7 @@ type TransDi struct {
 	expectedProcessingTime time.Duration
 	waitingQueueSize       int
 	zkOffsetUpdateInterval time.Duration
+	serializeByKey         bool
 }
 
 func (td *TransDi) init() (err error) {
@@ -308,7 +309,7 @@ func (td *TransDi) processConsumerMessage(msg *sarama.ConsumerMessage) {
 		// dispatch
 		td.transWindow.addSlot(msg)
 		var workerId uint32
-		if msg.Key == nil || len(msg.Key) == 0 {
+		if msg.Key == nil || len(msg.Key) == 0 || !td.serializeByKey {
 			workerId = uint32(rand.Int31n(int32(td.workerNum)))
 		} else {
 			td.dispatchHasher.Reset()

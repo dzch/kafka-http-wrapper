@@ -53,6 +53,7 @@ type Module struct {
 	expectedProcessingTime time.Duration
 	waitingQueueSize       int
 	zkOffsetUpdateInterval time.Duration
+	serializeByKey         bool
 }
 
 func (m *Module) init() (err error) {
@@ -136,6 +137,12 @@ func (m *Module) initConfig() (err error) {
 		return
 	}
 	m.failRetryInterval = time.Duration(failRetryInterval.(int)) * time.Millisecond
+	sbykey, ok := mc["serialize_by_key"]
+	if ok {
+		m.serializeByKey = sbykey.(bool)
+	} else {
+		m.serializeByKey = true
+	}
 
 	/* window size */
 	windowSize, ok := mc["window_size"]
@@ -193,6 +200,7 @@ func (m *Module) initTransDi() (err error) {
 		expectedProcessingTime: m.expectedProcessingTime,
 		waitingQueueSize:       m.waitingQueueSize,
 		zkOffsetUpdateInterval: m.zkOffsetUpdateInterval,
+		serializeByKey:         m.serializeByKey,
 	}
 	return m.transDi.init()
 }
