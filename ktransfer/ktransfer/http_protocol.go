@@ -140,13 +140,22 @@ func (hp *HttpProtocol) initConfig() (err error) {
 		logger.Warning("%s", err.Error())
 		return
 	}
-	if readTimeO == 0 || writeTimeO == 0 || connTimeO == 0 {
+	if readTimeO == 0 || writeTimeO == 0 {
 		hp.processTimeout = 0
 	} else {
-		hp.processTimeout = time.Duration(readTimeO.(int)+writeTimeO.(int)+connTimeO.(int)) * time.Millisecond
+		hp.processTimeout = time.Duration(readTimeO.(int)+writeTimeO.(int)) * time.Millisecond
 	}
 	/* http client */
 	hp.client = &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout:   time.Duration(connTimeO.(int)) * time.Millisecond,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
 		Timeout: hp.processTimeout,
 	}
 	return nil
